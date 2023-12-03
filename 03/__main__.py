@@ -5,6 +5,11 @@ from pathlib import Path
 from typing import Self
 
 
+def read_file(file_name: str) -> list[str]:
+    with (Path(__file__).parent / file_name).open() as f:
+        return [line.strip() for line in f.readlines()]
+
+
 class PartOne:
     @dataclass(frozen=True)
     class Number:
@@ -43,13 +48,8 @@ class PartOne:
     def __init__(self, file_name: str) -> None:
         self.file_name = file_name
 
-    @staticmethod
-    def read_file(file_name: str) -> list[str]:
-        with (Path(__file__).parent / file_name).open() as f:
-            return [line.strip() for line in f.readlines()]
-
     def solve(self) -> int:
-        lines = self.read_file(self.file_name)
+        lines = read_file(self.file_name)
         numbers = PartOne.Number.parse_lines(lines)
         return sum(
             number.value for number in numbers if number.has_adjacent_symbol(lines)
@@ -112,7 +112,7 @@ class PartOneTestCase(unittest.TestCase):
         )
 
     def test_has_adjacent_symbol_sample(self):
-        lines = PartOne.read_file("sample.txt")
+        lines = read_file("sample.txt")
 
         self.assertTrue(PartOne.Number(467, 0, 0, 3).has_adjacent_symbol(lines))
         self.assertFalse(PartOne.Number(114, 0, 5, 3).has_adjacent_symbol(lines))
@@ -145,6 +145,117 @@ class PartOneTestCase(unittest.TestCase):
     def test_solve(self):
         found_solution = PartOne("input.txt").solve()
         self.assertEqual(found_solution, 540025)
+
+
+class PartTwo:
+    @dataclass(frozen=True)
+    class Gear:
+        part_numbers: tuple[int, int]
+
+        def get_ratio(self):
+            return self.part_numbers[0] * self.part_numbers[1]
+
+        @classmethod
+        def parse_lines(cls, lines: list[str]) -> list[Self]:
+            found = []
+            for line_idx, line in enumerate(lines):
+                # print(line)
+                for match in re.finditer(r"(\*)", line):
+                    # print(f"{match.start(0)=}")
+                    part_numbers = cls._find_numbers(line, match.start(0))
+                    if line_idx > 0:
+                        part_numbers.extend(
+                            cls._find_numbers(lines[line_idx - 1], match.start(0))
+                        )
+                    try:
+                        part_numbers.extend(
+                            cls._find_numbers(lines[line_idx + 1], match.start(0))
+                        )
+                    except IndexError:
+                        pass
+
+                    # print(part_numbers)
+                    if len(part_numbers) == 2:
+                        found.append(cls(tuple(part_numbers)))
+            return found
+
+        @staticmethod
+        def _find_numbers(line: str, column: int) -> list[int]:
+            output = []
+            # print(f"Looking {line=}")
+
+            for match in re.finditer(r"\d+", line):
+                if match.start(0) - 1 <= column <= match.end(0):
+                    output.append(int(match.group(0)))
+
+            return output
+
+    def __init__(self, file_name: str) -> None:
+        self.file_name = file_name
+
+    def solve(self) -> int:
+        lines = read_file(self.file_name)
+        gears = PartTwo.Gear.parse_lines(lines)
+        return sum(gear.get_ratio() for gear in gears)
+
+
+class PartTwoTestCase(unittest.TestCase):
+    def test_gear_parse_single_line(self):
+        gears = PartTwo.Gear.parse_lines(["...123*456...12..34*"])
+        self.assertEqual(len(gears), 1)
+        self.assertEqual(gears[0].part_numbers, (123, 456))
+
+    def test_gear_parse_multiple_lines(self):
+        gears = PartTwo.Gear.parse_lines(
+            [
+                "467..114..",
+                "...*......",
+                "..35..633.",
+            ]
+        )
+        self.assertEqual(len(gears), 1)
+        self.assertEqual(gears[0].part_numbers, (467, 35))
+
+    def test_gear_parse_multiple_lines_all_positions(self):
+        lines_possible = [
+            [
+                "467*......",
+                ".35...633.",
+            ],
+            [
+                "467*......",
+                "..35..633.",
+            ],
+            [
+                "467*......",
+                "...35.633.",
+            ],
+            [
+                "467*......",
+                "....35.633",
+            ],
+        ]
+        for lines in lines_possible:
+            gears = PartTwo.Gear.parse_lines(lines)
+            self.assertEqual(len(gears), 1)
+            self.assertEqual(gears[0].part_numbers, (467, 35))
+
+    def test_sample_ratios(self):
+        lines = read_file("sample.txt")
+        gears = PartTwo.Gear.parse_lines(lines)
+        self.assertEqual(len(gears), 2, gears)
+        self.assertEqual(gears[0].part_numbers, (467, 35))
+        self.assertEqual(gears[1].part_numbers, (755, 598))
+        self.assertEqual(gears[0].get_ratio(), 16345)
+        self.assertEqual(gears[1].get_ratio(), 451490)
+
+    def test_sample(self):
+        found_solution = PartTwo("sample.txt").solve()
+        self.assertEqual(found_solution, 467835)
+
+    def test_solve(self):
+        found_solution = PartTwo("input.txt").solve()
+        self.assertEqual(found_solution, 84584891)
 
 
 if __name__ == "__main__":
