@@ -12,17 +12,17 @@ def read_file(file_name: str) -> list[str]:
 
 
 class PartOne:
-    CARDS_ORDER = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"]
-
     @dataclass(frozen=True)
     class Hand:
         cards: str
         bid: int
 
+        CARDS_ORDER = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"]
+
         @classmethod
         def from_line(cls, line: str) -> Self:
             line_match = re.fullmatch(
-                r"([" + "".join(PartOne.CARDS_ORDER) + r"]{5}) (\d+)", line
+                r"([" + "".join(cls.CARDS_ORDER) + r"]{5}) (\d+)", line
             )
             assert line_match
             return cls(
@@ -55,16 +55,16 @@ class PartOne:
                     return 6
 
         def nth_card_value(self, index: int) -> int:
-            return PartOne.CARDS_ORDER.index(self.cards[index])
+            return self.CARDS_ORDER.index(self.cards[index])
 
         def sort_key(self) -> int:
             factors = [
-                self.type * len(PartOne.CARDS_ORDER) ** 5,
-                self.nth_card_value(0) * len(PartOne.CARDS_ORDER) ** 4,
-                self.nth_card_value(1) * len(PartOne.CARDS_ORDER) ** 3,
-                self.nth_card_value(2) * len(PartOne.CARDS_ORDER) ** 2,
-                self.nth_card_value(3) * len(PartOne.CARDS_ORDER) ** 1,
-                self.nth_card_value(4) * len(PartOne.CARDS_ORDER) ** 0,
+                self.type * len(self.CARDS_ORDER) ** 5,
+                self.nth_card_value(0) * len(self.CARDS_ORDER) ** 4,
+                self.nth_card_value(1) * len(self.CARDS_ORDER) ** 3,
+                self.nth_card_value(2) * len(self.CARDS_ORDER) ** 2,
+                self.nth_card_value(3) * len(self.CARDS_ORDER) ** 1,
+                self.nth_card_value(4) * len(self.CARDS_ORDER) ** 0,
             ]
             return sum(factors)
 
@@ -73,11 +73,11 @@ class PartOne:
 
     def parse_input(self) -> list[Hand]:
         lines = read_file(self.file_name)
-        return [PartOne.Hand.from_line(line) for line in lines]
+        return [self.Hand.from_line(line) for line in lines]
 
     def solve(self) -> int:
         hands = self.parse_input()
-        sorted_hands = reversed(sorted(hands, key=PartOne.Hand.sort_key))
+        sorted_hands = reversed(sorted(hands, key=self.Hand.sort_key))
 
         return sum((i + 1) * hand.bid for i, hand in enumerate(sorted_hands))
 
@@ -146,6 +146,36 @@ class PartOneTestCase(unittest.TestCase):
     def test_solve(self):
         found_solution = PartOne("input.txt").solve()
         self.assertEqual(found_solution, 251545216)
+
+
+class PartTwo(PartOne):
+    class Hand(PartOne.Hand):
+        CARDS_ORDER = ["A", "K", "Q", "T", "9", "8", "7", "6", "5", "4", "3", "2", "J"]
+
+        @property
+        def count_cards(self) -> dict[str, int]:
+            raw_count = Counter(self.cards)
+
+            jokers = raw_count.pop("J") if "J" in raw_count else 0
+            try:
+                best_card, best_card_count = raw_count.most_common(1)[0]
+            except IndexError:
+                best_card = self.CARDS_ORDER[0]
+                best_card_count = 0
+
+            raw_count[best_card] = best_card_count + jokers
+
+            return {card: count for card, count in raw_count.items() if count >= 2}
+
+
+class PartTwoTestCase(unittest.TestCase):
+    def test_sample(self):
+        found_solution = PartTwo("sample.txt").solve()
+        self.assertEqual(found_solution, 5905)
+
+    def test_solve(self):
+        found_solution = PartTwo("input.txt").solve()
+        self.assertEqual(found_solution, 250384185)
 
 
 if __name__ == "__main__":
