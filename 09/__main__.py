@@ -23,10 +23,10 @@ class PartOne:
 
     def solve(self) -> int:
         lines = self.parse_input()
-        return sum(self.next_value(line) for line in lines)
+        return sum(self.extrapolate_value(line) for line in lines)
 
     @classmethod
-    def next_value(cls, line: list[int]) -> int:
+    def extrapolate_value(cls, line: list[int]) -> int:
         sublists = cls.get_sublists(line)
         result = 0
         for sublist in reversed(sublists):
@@ -59,10 +59,10 @@ class PartOneTestCase(unittest.TestCase):
         self.assertEqual(lines[1], [1, 3, 6, 10, 15, 21])
         self.assertEqual(lines[2], [10, 13, 16, 21, 30, 45])
 
-    def test_next_value(self):
-        self.assertEqual(PartOne.next_value([0, 3, 6, 9, 12, 15]), 18)
-        self.assertEqual(PartOne.next_value([1, 3, 6, 10, 15, 21]), 28)
-        self.assertEqual(PartOne.next_value([10, 13, 16, 21, 30, 45]), 68)
+    def test_extrapolate_value(self):
+        self.assertEqual(PartOne.extrapolate_value([0, 3, 6, 9, 12, 15]), 18)
+        self.assertEqual(PartOne.extrapolate_value([1, 3, 6, 10, 15, 21]), 28)
+        self.assertEqual(PartOne.extrapolate_value([10, 13, 16, 21, 30, 45]), 68)
 
     def test_get_sublists(self):
         self.assertEqual(
@@ -83,6 +83,32 @@ class PartOneTestCase(unittest.TestCase):
     def test_solve(self):
         found_solution = PartOne("input.txt").solve()
         self.assertEqual(found_solution, 1853145119)
+
+
+class PartTwo(PartOne):
+    @classmethod
+    def extrapolate_value(cls, line: list[int]) -> int:
+        sublists = cls.get_sublists(line)
+        result = 0
+        for sublist in reversed(sublists):
+            first_value = sublist[0]
+            result = first_value - result
+        return result
+
+
+class PartTwoTestCase(unittest.TestCase):
+    def test_extrapolate_value(self):
+        self.assertEqual(PartTwo.extrapolate_value([0, 3, 6, 9, 12, 15]), -3)
+        self.assertEqual(PartTwo.extrapolate_value([1, 3, 6, 10, 15, 21]), 0)
+        self.assertEqual(PartTwo.extrapolate_value([10, 13, 16, 21, 30, 45]), 5)
+
+    def test_sample(self):
+        found_solution = PartTwo("sample.txt").solve()
+        self.assertEqual(found_solution, 2)
+
+    def test_solve(self):
+        found_solution = PartTwo("input.txt").solve()
+        self.assertEqual(found_solution, 923)
 
 
 if __name__ == "__main__":
