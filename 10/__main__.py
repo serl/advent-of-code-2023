@@ -57,6 +57,22 @@ class Field:
     def connected_tiles(self, tile: Tile) -> list[Tile]:
         return [self.tiles[idx] for idx in tile.connected_tiles_indexes()]
 
+    def find_loop(self) -> dict[tuple[int, int], Tile]:
+        loop: list[Tile] = [self.start_tile]
+        while True:
+            current_tile = loop[-1]
+            try:
+                previous_tile = loop[-2]
+            except IndexError:
+                previous_tile = None
+            next_tile = next(
+                t for t in self.connected_tiles(current_tile) if t != previous_tile
+            )
+            if next_tile == self.start_tile:
+                break
+            loop.append(next_tile)
+        return {(t.x, t.y): t for t in loop}
+
     @classmethod
     def from_lines(cls, lines: list[str]) -> Self:
         start_tile_idx = None
@@ -109,22 +125,8 @@ class PartOne:
 
     def solve(self) -> int:
         field = self.parse_input()
-
-        steps = 1
-        # print(f"Start tile: {field.start_tile}")
-        previous_tiles: list[Tile] = [field.start_tile, field.start_tile]
-        current_tiles: list[Tile] = field.connected_tiles(field.start_tile)
-        while len(set(current_tiles)) != 1:
-            # print(f"Current tiles: {current_tiles}")
-            next_tiles: list[Tile] = []
-            for tile in current_tiles:
-                next_tiles.extend(
-                    t for t in field.connected_tiles(tile) if t not in previous_tiles
-                )
-            steps += 1
-            previous_tiles, current_tiles = current_tiles, next_tiles
-
-        return steps
+        half_loop_length = len(field.find_loop()) / 2
+        return int(half_loop_length)
 
 
 class PartOneTestCase(unittest.TestCase):
